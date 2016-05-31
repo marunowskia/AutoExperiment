@@ -1,0 +1,32 @@
+﻿INSERT INTO PARAMETER_TYPE
+(
+	PARAMETER_GROUP_ID,
+	NAME,
+	MIN_VALUE,
+	MAX_VALUE
+)
+VALUES
+(
+	-1,
+	'W',
+	-3000,
+	3000
+),
+(
+	-1,
+	'X',
+	-3000,
+	3000
+),
+(
+	-1,
+	'Y',
+	-3000,
+	3000
+),
+(
+	-1,
+	'Z',
+	-3000,
+	3000
+);
