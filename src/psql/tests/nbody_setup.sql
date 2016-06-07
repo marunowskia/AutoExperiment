@@ -17,43 +17,47 @@ INSERT INTO PARAMETER_TYPE
 )
 SELECT
 	'NBODY_PARAMETER_GROUP',
-	'' || generate_series || '.vx',
+	'' || GENERATE_SERIES || '.VX',
 	-100,
 	100
 FROM
-	generate_series(1,5)
+	GENERATE_SERIES(1,5)
 
-union all
+UNION ALL
 SELECT
 	'NBODY_PARAMETER_GROUP',
-	'' || generate_series || '.vy',
+	'' || GENERATE_SERIES || '.VY',
 	-100,
 	100
 FROM
-	generate_series(1,5)
-union all
+	GENERATE_SERIES(1,5)
+UNION ALL
 	SELECT
 	'NBODY_PARAMETER_GROUP',
-	'' || generate_series || '.vz',
+	'' || GENERATE_SERIES || '.VZ',
 	-100,
 	100
 FROM
-	generate_series(1,5);
+	GENERATE_SERIES(1,5);
 
 INSERT INTO EXPERIMENT_SCRIPT
 (
 	ID,
 	SCRIPT,
-	LAUNCHER
+	LAUNCHER,
+	PARAMETER_GROUP_ID,
+	ALLOWED_DURATION_SECONDS
 )
 VALUES
 (
 	'NBODY_SCRIPT',
-	'score = parameterData[''1.x'']]',
-	'python'
+	'SCORE = PARAMETERDATA[''1.X'']]',
+	'PYTHON',
+	'NBODY_PARAMETER_GROUP',
+	300
 );
 
-insert into experiment_group
+INSERT INTO EXPERIMENT_GROUP
 (
 	GROUP_CONFIG_ID,-- CHARACTER VARYING (128) NOT NULL REFERENCES GROUP_CONFIG(ID),
 	MAX_EXPERIMENT_COUNT,-- BIGINT NOT NULL,
