@@ -9,10 +9,18 @@ experimentScript =  cursor.fetchall()[0][0]
 cursor.execute('select * from get_experiment_parameters(%s)', (experimentId,))
 experimentParams = cursor.fetchall()
 
-print(experimentParams)
-for listElement in experimentParams:
-	print(listElement)
+parameterData = {}
 
+print(experimentParams)
+
+for listElement in experimentParams:
+	parameterData[listElement[0]] = listElement[1]
+
+# show that our dictionary is populated well
+for k in parameterData:
+	print(k + ": " + str(parameterData[k]))
+
+print(experimentScript)
 #exec experimentScript
 
 #	cursor.execute('select record_result(?,?,?)', experimentId, score, extraData)
