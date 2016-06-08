@@ -897,5 +897,54 @@ $$
 LANGUAGE SQL;
 
 
+
+create or replace function get_experiment_script(param_experiment_id bigint) returns text
+as
+$$
+	select 
+		es.script
+	from
+		experiment_script es
+	join
+		experiment_group eg
+	on
+		eg.experiment_script_id
+		=
+		es.id
+	join
+		experiment e
+	on
+		e.experiment_group_id = param_experiment_id
+	where
+		e.id = param_experiment_id
+$$
+language sql;
+
+create or replace function get_experiment_parameters(param_experiment_id bigint) returns table
+(
+	name character varying (1000),
+	paramter_value real
+)
+as
+$$
+	select
+		name,
+		parameter_value
+	from
+		experiment e 
+	join
+		parameter p
+	on
+		p.experiment_id = e.id
+	join
+		parameter_type pt
+	on
+		pt.id = p.parameter_type_id
+	where
+		e.id = param_experiment_id
+$$
+language sql;
+
+
 select generate_seed_experiments(get_active_experiment_group());
 
