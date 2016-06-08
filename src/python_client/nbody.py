@@ -79,13 +79,14 @@ class nbody:
 			body.applyAcceleration(self.dt)
 			body.applyVelocity(self.dt)
 		
-'''		print(
+		'''
+		print(
 			math.floor(self.bodies[1].pos.x), 
 			math.floor(self.bodies[1].pos.y), 
 			math.floor(self.bodies[3].pos.x),
 			math.floor(self.bodies[3].pos.y)
 		)
-'''		
+		'''		
 	
 	def addBody(self, pos, vel, mas):
 		b = body(pos, vel, mas)
