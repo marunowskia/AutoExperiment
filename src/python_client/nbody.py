@@ -62,7 +62,7 @@ class body:
 			# a = r * G * m / |r|^3
 				rad = other.pos - self.pos
 				#print(self.pos.x, other.pos.x)
-				self.acc = self.acc + rad * other.mas / rad.magnitude()**3	
+				self.acc = self.acc + rad * other.mas / (rad.magnitude()+1)**3	 # prevent numerical instability from bodies getting too close
 
 class nbody:
 	def __init__(self):
@@ -78,7 +78,14 @@ class nbody:
 		for body in self.bodies:
 			body.applyAcceleration(self.dt)
 			body.applyVelocity(self.dt)
-
+		
+'''		print(
+			math.floor(self.bodies[1].pos.x), 
+			math.floor(self.bodies[1].pos.y), 
+			math.floor(self.bodies[3].pos.x),
+			math.floor(self.bodies[3].pos.y)
+		)
+'''		
 	
 	def addBody(self, pos, vel, mas):
 		b = body(pos, vel, mas)
@@ -118,11 +125,11 @@ def main(parameterData):
 	vel[5] = vec3(parameterData["5.VX"], parameterData["5.VY"], parameterData["5.VZ"])
 
 
-	rad = 5
+	rad = 500
 	for i in range(1,5):
 		fraction = (i/5.0)*2*math.pi
 		pos = vec3(math.cos(fraction), math.sin(fraction), 0) * rad
-		mas = 100 #cause quick experiments
+		mas = 1000 #cause quick experiments
 		sim.addBody(pos, vel[i], mas)
 	
 	
