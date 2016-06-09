@@ -1,16 +1,14 @@
-import pg8000
-import databaseUtil
+import dbUtil
 
-conn = getDefaultConnection()
+db = dbUtil.getDefaultDb();
 
 while True:
-	experimentId = getNextExperiment()
-	
+	experimentId = db.getNextExperiment()
 	if experimentId is not None:
-		experimentParams = getExperimentParams(experimentId)
-		experimentScript = getExperimentScript(experimentId)
+		experimentParams = db.getExperimentParams(experimentId)
+		experimentScript = db.getExperimentScript(experimentId)
 		exec experimentScript #creates function called runExperiment(experimentParams)
 		score, detail = runExperiment(experimentParams)
-		recordResult(experimentId, score, detail)
+		db.recordResult(experimentId, score, detail)
 	else:
 		break
