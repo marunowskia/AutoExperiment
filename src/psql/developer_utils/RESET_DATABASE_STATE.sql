@@ -931,7 +931,7 @@ $$
 	join
 		experiment e
 	on
-		e.experiment_group_id = param_experiment_id
+		e.experiment_group_id = eg.id
 	where
 		e.id = param_experiment_id
 $$
