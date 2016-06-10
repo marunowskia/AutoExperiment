@@ -5,38 +5,38 @@ class vec3:
 		self.x = x
 		self.y = y
 		self.z = z
-	
+
 	def __add__(self, other):
 		res = vec3()
 		res.x = self.x + other.x
 		res.y = self.y + other.y
 		res.z = self.z + other.z
 		return res
-	
+
 	def __sub__(self, other):
 		res = vec3()
 		res.x = self.x - other.x
 		res.y = self.y - other.y
 		res.z = self.z - other.z
 		return res
-	
+
 	def __mul__(self, other):
 		res = vec3()
 		res.x = self.x*other;
 		res.y = self.y*other;
 		res.z = self.z*other;
 		return res;
-	
+
 	def __div__(self, other):
 		res = vec3()
 		res.x = self.x/other;
 		res.y = self.y/other;
 		res.z = self.z/other;
 		return res;
-	
+
 	def magnitude(self):
 		return math.sqrt(self.x * self.x + self.y*self.y + self.z*self.z)
-		
+
 class body:
 
 	def __init__(self, pos=vec3(), vel=vec3(), mas=vec3()):
@@ -47,10 +47,10 @@ class body:
 
 	def applyVelocity(self, dt):
 		self.pos = self.pos + self.vel * dt
-	
+
 	def applyAcceleration(self, dt):
 		self.vel = self.vel + self.acc * dt
-		
+
 	def applyGravity(self, otherBodies):
 		self.acc = vec3()
 		for other in otherBodies:
@@ -69,16 +69,15 @@ class nbody:
 		self.dt = 0.1
 		self.bodies = []
 		self.initialDistance = {}
-		
+
 	def step(self):
 		for body in self.bodies:
 			#compute gravity before moving things!
 			body.applyGravity(self.bodies)
-			
+
 		for body in self.bodies:
 			body.applyAcceleration(self.dt)
 			body.applyVelocity(self.dt)
-		
 		'''
 		print(
 			math.floor(self.bodies[1].pos.x), 
@@ -86,15 +85,14 @@ class nbody:
 			math.floor(self.bodies[3].pos.x),
 			math.floor(self.bodies[3].pos.y)
 		)
-		'''		
-	
+		'''
 	def addBody(self, pos, vel, mas):
 		b = body(pos, vel, mas)
 		self.bodies.append(b)
 		# keep track of how far this object is from each other object.
 		self.initialDistance[b] = {other:(b.pos-other.pos).magnitude() for other in self.initialDistance}
-		
-	
+
+
 	# specific to AutoExperiment toy problem
 	def score(self):
 
@@ -104,16 +102,15 @@ class nbody:
 			for other, initialDistance in distances.items():
 				dist = (body.pos - other.pos).magnitude()
 				totalDiff = abs(dist - initialDistance)
-		
+
 		# The goal of our toy problem is to achieve stable orbits.
 		# Any deviation from the initial distances is bad.
 		return -totalDiff * self.dt # Scale score wrt to step size. Allows mid-experiment step size shenanigans.
-	
-	
-	
-		
 
-def main(parameterData):
+
+
+
+def runExperiment(parameterData):
 	sim = nbody()
 
 	vel = {}
@@ -132,10 +129,11 @@ def main(parameterData):
 		pos = vec3(math.cos(fraction), math.sin(fraction), 0) * rad
 		mas = 1000 #cause quick experiments
 		sim.addBody(pos, vel[i], mas)
-	
-	
-	score = 0	
-	for i in range(1,10000):
+
+
+	score = 0
+	for i in range(1,5000):
 		sim.step()
 		score += sim.score()
+	print('score: ' + str(score))
 	return score
