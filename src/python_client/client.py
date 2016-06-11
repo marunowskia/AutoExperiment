@@ -13,4 +13,5 @@ while True:
 		score, detail = runExperiment(experimentParams)
 		db.recordExperimentResult(experimentId, score, detail)
 	else:
+		print('no work to do')
 		break
