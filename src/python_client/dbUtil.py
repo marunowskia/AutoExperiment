@@ -7,6 +7,7 @@ class DbUtil:
 
 	def getNextExperiment(self):
 		self.cursor.execute('select get_next_experiment()')
+		self.conn.commit()
 
 		result = self.cursor.fetchall()
 		if len(result) == 1 and len(result[0]) == 1:
