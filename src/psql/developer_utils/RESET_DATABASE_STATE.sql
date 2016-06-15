@@ -123,10 +123,10 @@ VALUES
 (
 	'BASIC_DETERMINISTIC', --ID,
 	50, --STARTING_POPULATION_SIZE,
-	125, --NUMBER_OF_RECENT_CONTENDERS,
-	25, --NUMBER_OF_RANDOM_CONTENDERS,
+	10, --NUMBER_OF_RECENT_CONTENDERS,
+	10, --NUMBER_OF_RANDOM_CONTENDERS,
 	10, --NUMBER_OF_BEST_CONTENDERS,
-	3, --PERFORMANCE_BIAS,
+	2, --PERFORMANCE_BIAS,
 	0, --RESAMPLE_BIAS,
 	0 --RESAMPLE_PROBABILITY
 ),
@@ -227,14 +227,19 @@ $$
 LANGUAGE PLPGSQL;
 
 
-CREATE OR REPLACE FUNCTION GENERATE_SEED_EXPERIMENTS(PARAM_EXPERIMENT_GROUP_ID BIGINT) RETURNS VOID
+CREATE OR REPLACE FUNCTION GENERATE_SEED_EXPERIMENTS() RETURNS VOID
 AS
 $$
 DECLARE EXPERIMENTS_TO_CREATE INT;
+DECLARE EXPERIMENT_GROUP_ID BIGINT;
 DECLARE NEWLY_CREATED_EXPERIMENT_ID BIGINT;
 BEGIN
 	SELECT
-		GC.STARTING_POPULATION_SIZE - COUNT(*) INTO EXPERIMENTS_TO_CREATE
+		GC.STARTING_POPULATION_SIZE - COUNT(*),
+		EG.ID
+	INTO 
+		EXPERIMENTS_TO_CREATE,
+		EXPERIMENT_GROUP_ID
 	FROM
 		EXPERIMENT_GROUP EG
 	LEFT JOIN
@@ -245,21 +250,20 @@ BEGIN
 		GROUP_CONFIG GC
 	ON
 		GC.ID = EG.GROUP_CONFIG_ID
-	WHERE
-		EG.ID = PARAM_EXPERIMENT_GROUP_ID
 	GROUP BY
-		GC.STARTING_POPULATION_SIZE;
-
---	RAISE NOTICE 'CREATEING % EXPERIMENTS' , EXPERIMENTS_TO_CREATE;
+		GC.STARTING_POPULATION_SIZE,
+		EG.ID
+	HAVING
+		GC.STARTING_POPULATION_SIZE - COUNT(*) > 0;
 
 	IF EXPERIMENTS_TO_CREATE > 0 THEN
 
 		INSERT INTO EXPERIMENT ( EXPERIMENT_GROUP_ID)
-		VALUES ( PARAM_EXPERIMENT_GROUP_ID )
+		VALUES ( EXPERIMENT_GROUP_ID )
 		RETURNING ID INTO NEWLY_CREATED_EXPERIMENT_ID;
 		PERFORM FILL_IN_MISSING_PARAMETERS(NEWLY_CREATED_EXPERIMENT_ID);
 		-- SAFE, BUT I/O HEAVY WAY TO GUARANTEE WE DON'T OVERFILL THE STARTING POPULATION FOR THIS EXPERIMENT_GROUP
-		PERFORM GENERATE_SEED_EXPERIMENTS(PARAM_EXPERIMENT_GROUP_ID); 
+		PERFORM GENERATE_SEED_EXPERIMENTS(); 
 	END IF;
 END
 $$
@@ -816,220 +820,3 @@ $$
 		e.id = param_experiment_id
 $$
 language sql;
-
-
-select generate_seed_experiments(get_active_experiment_group());
-
-INSERT INTO PARAMETER_GROUP
-(
-	ID
-)
-VALUES
-(
-	'NBODY_PARAMETER_GROUP'
-);
-
-
-INSERT INTO PARAMETER_TYPE
-(
-	PARAMETER_GROUP_ID,
-	NAME,
-	MIN_VALUE,
-	MAX_VALUE
-)
-SELECT
-	'NBODY_PARAMETER_GROUP',
-	'' || GENERATE_SERIES || '.VX',
-	-100,
-	100
-FROM
-	GENERATE_SERIES(1,5)
-
-UNION ALL
-SELECT
-	'NBODY_PARAMETER_GROUP',
-	'' || GENERATE_SERIES || '.VY',
-	-100,
-	100
-FROM
-	GENERATE_SERIES(1,5)
-UNION ALL
-	SELECT
-	'NBODY_PARAMETER_GROUP',
-	'' || GENERATE_SERIES || '.VZ',
-	-100,
-	100
-FROM
-	GENERATE_SERIES(1,5);
-
-INSERT INTO EXPERIMENT_SCRIPT
-(
-	ID,
-	SCRIPT,
-	LAUNCHER,
-	PARAMETER_GROUP_ID,
-	ALLOWED_DURATION_SECONDS
-)
-VALUES
-(
-	'NBODY_SCRIPT',
-	'
-import math
-
-class vec3:
-	def __init__(self, x=0,y=0,z=0):
-		self.x = x
-		self.y = y
-		self.z = z
-
-	def __add__(self, other):
-		res = vec3()
-		res.x = self.x + other.x
-		res.y = self.y + other.y
-		res.z = self.z + other.z
-		return res
-
-	def __sub__(self, other):
-		res = vec3()
-		res.x = self.x - other.x
-		res.y = self.y - other.y
-		res.z = self.z - other.z
-		return res
-
-	def __mul__(self, other):
-		res = vec3()
-		res.x = self.x*other;
-		res.y = self.y*other;
-		res.z = self.z*other;
-		return res;
-
-	def __div__(self, other):
-		res = vec3()
-		res.x = self.x/other;
-		res.y = self.y/other;
-		res.z = self.z/other;
-		return res;
-
-	def magnitude(self):
-		return math.sqrt(self.x * self.x + self.y*self.y + self.z*self.z)
-
-class body:
-
-	def __init__(self, pos=vec3(), vel=vec3(), mas=vec3()):
-		self.pos = pos
-		self.vel = vel
-		self.acc = vec3()
-		self.mas = mas
-
-	def applyVelocity(self, dt):
-		self.pos = self.pos + self.vel * dt
-
-	def applyAcceleration(self, dt):
-		self.vel = self.vel + self.acc * dt
-
-	def applyGravity(self, otherBodies):
-		self.acc = vec3()
-		for other in otherBodies:
-			if other is not self:
-			# F = ma
-			# Fg = r_norm * G(Mm)/|r|^2
-			# Fg = r * G (M*m) / |r|^3
-			# F = ma --> a = f/m
-			# a = r * G * m / |r|^3
-				rad = other.pos - self.pos
-				#print(self.pos.x, other.pos.x)
-				self.acc = self.acc + rad * other.mas / (rad.magnitude()+1)**3	 # prevent numerical instability from bodies getting too close
-
-class nbody:
-	def __init__(self):
-		self.dt = 0.1
-		self.bodies = []
-		self.initialDistance = {}
-
-	def step(self):
-		for body in self.bodies:
-			#compute gravity before moving things!
-			body.applyGravity(self.bodies)
-
-		for body in self.bodies:
-			body.applyAcceleration(self.dt)
-			body.applyVelocity(self.dt)
-		"""
-		print(
-			math.floor(self.bodies[1].pos.x), 
-			math.floor(self.bodies[1].pos.y), 
-			math.floor(self.bodies[3].pos.x),
-			math.floor(self.bodies[3].pos.y)
-		)
-		"""
-	def addBody(self, pos, vel, mas):
-		b = body(pos, vel, mas)
-		self.bodies.append(b)
-		# keep track of how far this object is from each other object.
-		self.initialDistance[b] = {other:(b.pos-other.pos).magnitude() for other in self.initialDistance}
-
-
-	# specific to AutoExperiment toy problem
-	def score(self):
-
-		totalDiff = 0
-
-		for body, distances in self.initialDistance.items():
-			for other, initialDistance in distances.items():
-				dist = (body.pos - other.pos).magnitude()
-				totalDiff = abs(dist - initialDistance)
-
-		# The goal of our toy problem is to achieve stable orbits.
-		# Any deviation from the initial distances is bad.
-		return -totalDiff * self.dt # Scale score wrt to step size. Allows mid-experiment step size shenanigans.
-
-
-
-
-def runExperiment(parameterData):
-	sim = nbody()
-
-	vel = {}
-
-	# should be in loop. meh. demo.
-	vel[1] = vec3(parameterData["1.VX"], parameterData["1.VY"], parameterData["1.VZ"])
-	vel[2] = vec3(parameterData["2.VX"], parameterData["2.VY"], parameterData["2.VZ"])
-	vel[3] = vec3(parameterData["3.VX"], parameterData["3.VY"], parameterData["3.VZ"])
-	vel[4] = vec3(parameterData["4.VX"], parameterData["4.VY"], parameterData["4.VZ"])
-	vel[5] = vec3(parameterData["5.VX"], parameterData["5.VY"], parameterData["5.VZ"])
-
-
-	rad = 500
-	for i in range(1,5):
-		fraction = (i/5.0)*2*math.pi
-		pos = vec3(math.cos(fraction), math.sin(fraction), 0) * rad
-		mas = 1000 #cause quick experiments
-		sim.addBody(pos, vel[i], mas)
-
-
-	score = 0
-	for i in range(1,5000):
-		sim.step()
-		score += sim.score()
-	print("score: " + str(score))
-	return score, str(sim.bodies[0].pos.x - sim.bodies[1].pos.x)
-',
-	'PYTHON',
-	'NBODY_PARAMETER_GROUP',
-	300
-);
-
-INSERT INTO EXPERIMENT_GROUP
-(
-	GROUP_CONFIG_ID,-- CHARACTER VARYING (128) NOT NULL REFERENCES GROUP_CONFIG(ID),
-	MAX_EXPERIMENT_COUNT,-- BIGINT NOT NULL,
-	EXPERIMENT_SCRIPT_ID-- CHARACTER VARYING (128) REFERENCES EXPERIMENT_SCRIPT(ID),
-)
-VALUES
-(
-	'BASIC_DETERMINISTIC',
-	100000,
-	'NBODY_SCRIPT'
-);
-select generate_seed_experiments(get_active_experiment_group());
-
